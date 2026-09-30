@@ -1,16 +1,22 @@
 # Dataset
 
-This directory contains the annotated sentence-level dataset used to train and evaluate the ballot leakage detection system.
+This directory contains the sentence-level annotated dataset used for the ballot leakage detection experiments.
 
-Each row represents one sentence extracted from written feedback in a debate judge ballot. Sentences are annotated for both the **direction** and **strength** of potential ballot information leakage.
+## File
 
-## Annotation Schema
+`ballot_leakage_candidate_dataset - Candidate Dataset.csv`
+
+Each row represents one sentence extracted from written feedback in a debate judge ballot.
+
+The dataset is designed to study whether an individual feedback sentence reveals information about the judge's ballot outcome, and if so, which side the sentence favors.
+
+## Annotation Framework
+
+Each sentence is annotated along two dimensions: **leakage direction** and **leakage strength**.
 
 ### Leakage Direction
 
-Indicates which ballot outcome, if any, is implied by the sentence.
-
-| Label | Description |
+| Label | Meaning |
 |---|---|
 | `PRO` | The sentence provides information favoring a PRO outcome |
 | `CON` | The sentence provides information favoring a CON outcome |
@@ -18,83 +24,69 @@ Indicates which ballot outcome, if any, is implied by the sentence.
 
 Examples:
 
-- `PRO`: "Con never responds to Pro's weighing."
-- `CON`: "Pro drops Con's main impact."
-- `NEUTRAL`: "Pro should provide more evidence."
+- **PRO:** "Con never answers Pro's weighing."
+- **CON:** "Pro drops Con's main impact."
+- **NEUTRAL:** "Pro should use more evidence."
 
 ### Leakage Strength
 
-Indicates how strongly the sentence reveals information about the ballot outcome.
-
-| Level | Description |
+| Level | Meaning |
 |---|---|
 | `0` | No meaningful outcome leakage |
 | `1` | Directional signal that implicitly suggests an outcome |
 | `2` | Explicit or decisive information revealing the outcome |
 
-For example:
+Examples:
 
 - **Level 0:** "Pro should explain their weighing more clearly."
 - **Level 1:** "Con never responds to Pro's weighing."
 - **Level 2:** "Pro wins because Con never responds to their weighing."
 
-Direction and strength are annotated separately.
+Direction and strength are annotated separately. A sentence's recorded ballot outcome is not used to determine its leakage direction.
 
 ## Dataset Fields
 
 | Field | Description |
 |---|---|
-| `sentence_id` | Unique sentence identifier |
+| `sentence_id` | Unique identifier for the sentence |
 | `ballot_id` | Identifier for the source ballot |
-| `judge_id` | Anonymized judge identifier |
-| `actual_ballot` | Recorded PRO/CON ballot outcome |
-| `section` | Ballot section containing the sentence |
-| `sentence` | Sentence used as model input |
-| `previous_sentence` | Previous sentence in the original feedback |
-| `next_sentence` | Following sentence in the original feedback |
-| `leakage_strength` | Annotated leakage strength (`0`, `1`, `2`) |
-| `leakage_direction` | Annotated direction (`PRO`, `CON`, `NEUTRAL`) |
-| `annotation_uncertain` | Whether the annotation was considered uncertain |
-| `uncertainty_reason` | Reason for annotation uncertainty, when applicable |
+| `judge_id` | Identifier for the judge |
+| `actual_ballot` | Recorded ballot outcome (`PRO` or `CON`) |
+| `section` | Section of the ballot containing the sentence |
+| `sentence` | Sentence extracted from the ballot and used as the primary model input |
+| `previous_sentence` | Sentence immediately preceding the target sentence |
+| `next_sentence` | Sentence immediately following the target sentence |
+| `leakage_strength` | Annotated leakage strength (`0`, `1`, or `2`) |
+| `leakage_direction` | Annotated leakage direction (`PRO`, `CON`, or `NEUTRAL`) |
+| `annotation_uncertain` | Indicates whether the annotation was considered uncertain |
+| `uncertainty_reason` | Explanation for annotation uncertainty, when applicable |
 
-## Dataset Versions
+## Modeling Usage
 
-### v1
+The current experiments use only the `sentence` field as text input to BGE.
 
-The original dataset contains **300 sentences from 28 unique ballots and 16 judges**.
+`leakage_direction` provides the primary supervision for the embedding experiments:
 
-| Split | Sentences |
-|---|---:|
-| Train | 212 |
-| Validation | 44 |
-| Test | 44 |
-| **Total** | **300** |
+- `PRO` sentences are trained toward PRO reference statements.
+- `CON` sentences are trained toward CON reference statements.
+- `NEUTRAL` sentences are used as an explicit third semantic class in the three-way experiments.
 
-### v2
+`leakage_strength` is retained as an annotation and diagnostic variable but is not directly predicted by the current model.
 
-The expanded dataset adds **108 manually annotated directional sentences**, producing **408 sentences** in total.
+`actual_ballot`, `section`, `previous_sentence`, and `next_sentence` are not provided to the current embedding model.
 
-| Split | Sentences |
-|---|---:|
-| Train | 285 |
-| Validation | 61 |
-| Test | 62 |
-| **Total** | **408** |
+## Data Splitting
 
-Because the dataset was re-split after expansion, results obtained on v1 and v2 validation sets should **not be directly compared as if only the training data changed**.
+Model development uses judge-separated training and validation data to reduce the risk of judge-specific writing patterns appearing across both sets.
 
-## Split Strategy
+The held-out test set is not used during model development.
 
-Splits are constructed at the **judge level** rather than randomly at the sentence level.
+See `../notebooks/` for the experimental implementation and `../results/` for evaluation results.
 
-A judge appearing in one split does not appear in another. This prevents sentences written by the same judge, including potentially similar writing patterns, from leaking across training and evaluation sets.
+## Annotation Considerations
 
-Ballot and sentence overlap across splits is also checked during dataset construction.
+The annotations are intentionally conservative. General praise, criticism, or suggestions for improvement are not considered ballot leakage unless the sentence provides meaningful information about the likely outcome.
 
-## Model Usage
+For example, negative feedback about PRO does not automatically imply a CON direction, and positive feedback about PRO does not automatically imply a PRO direction.
 
-The current embedding models use only the `sentence` field as text input.
-
-`leakage_direction` is used to construct training triplets and evaluate predictions. Context fields such as `previous_sentence`, `next_sentence`, and `section` are retained for analysis and future experiments but are not included in the current model input.
-
-`leakage_strength` is an annotation and diagnostic variable; the current model is not directly trained to predict leakage strength.
+This distinction is important because the task concerns **ballot information leakage rather than sentiment classification**.
