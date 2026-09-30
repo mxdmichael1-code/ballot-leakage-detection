@@ -4,14 +4,24 @@ This directory contains the evaluation results from the ballot leakage detection
 
 ## Dataset v1
 
-| Experiment | Training Samples | Accuracy | Macro F1 | Direction Accuracy |
-|---|---:|---:|---:|---:|
-| Original BGE Baseline | 0 | 0.6136 | 0.4762 | 0.2778 |
-| Directional Fine-Tuning | 83 | 0.6591 | 0.5515 | 0.3889 |
-| Three-Way Fine-Tuning | 143 | 0.7045 | 0.6250 | 0.6111 |
-| Full-Train Fine-Tuning | 212 | 0.7045 | 0.6351 | 0.5556 |
+| Experiment | Setup | Training Samples | Accuracy | Macro F1 | Direction Accuracy |
+|---|---|---:|---:|---:|---:|
+| Original BGE Baseline | PRO/CON similarity + neutral threshold | 0 | 0.6136 | 0.4762 | 0.2778 |
+| Directional Fine-Tuning | PRO/CON triplet fine-tuning | 83 | 0.6591 | 0.5515 | 0.3889 |
+| Three-Way BGE Baseline | PRO/CON/NEUTRAL target banks | 0 | 0.2955 | 0.3049 | 0.3889 |
+| Three-Way Fine-Tuning | 60 sampled NEUTRAL examples | 143 | 0.7045 | 0.6250 | 0.6111 |
+| Full-Train Fine-Tuning | All v1 training examples | 212 | 0.7045 | 0.6351 | 0.5556 |
 
 All Dataset v1 experiments are evaluated on the same 44-sentence validation split.
+
+### Baseline distinction
+
+Two BGE baselines are reported because the formulation changed during development:
+
+- **Original BGE Baseline** uses PRO and CON reference banks and introduces NEUTRAL through a similarity-difference threshold.
+- **Three-Way BGE Baseline** uses explicit PRO, CON, and NEUTRAL reference banks and predicts the class with the highest reference similarity.
+
+The Three-Way BGE Baseline is therefore the more direct no-fine-tuning comparison for the later three-way fine-tuning experiments.
 
 ### Metrics
 
