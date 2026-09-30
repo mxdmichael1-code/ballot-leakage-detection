@@ -141,16 +141,13 @@ ballot-leakage-detection/
 │   ├── README.md
 │   └── ballot_leakage_candidate_dataset - Candidate Dataset.csv
 │
-├── notebooks/
-│   ├── README.md
-│   ├── 01A_bge_baseline.ipynb
-│   ├── 01B_bge_threeway_baseline.ipynb
-│   ├── 02A_BGE_Directional_Finetuning.ipynb
-│   └── 02B_BGE_ThreeWay_Finetuning.ipynb
-│
-└── results/
+└── notebooks/
     ├── README.md
-    └── ...
+    ├── 01A_bge_baseline.ipynb
+    ├── 01B_bge_threeway_baseline.ipynb
+    ├── 02A_BGE_Directional_Finetuning.ipynb
+    └── 02B_BGE_ThreeWay_Finetuning.ipynb
+ 
 ```
 
 ## Model and Training Setup
