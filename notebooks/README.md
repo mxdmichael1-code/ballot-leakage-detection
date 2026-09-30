@@ -1,64 +1,75 @@
 # Experiment Notebooks
 
-This directory contains the experiments used to develop and evaluate the ballot leakage detection approach.
+This directory contains the four main experiments used to develop and evaluate the ballot leakage detection approach.
 
-The notebooks follow the progression from an off-the-shelf BGE embedding baseline to triplet-loss fine-tuning for PRO / CON / NEUTRAL semantic separation.
+The experiments compare the original BGE embedding space with task-specific triplet-loss fine-tuning under two formulations:
+
+1. **Directional:** PRO vs. CON similarity, with a threshold used to identify NEUTRAL sentences.
+2. **Three-way:** PRO, CON, and NEUTRAL represented as explicit semantic target classes.
 
 ## Experiment Overview
 
-| Notebook | Dataset | Purpose |
-|---|---|---|
-| `01_bge_baseline.ipynb` | v1 | Evaluate the original BGE embedding space and establish retrieval/classification baselines |
-| `02_directional_finetuning.ipynb` | v1 | Test whether triplet-loss fine-tuning improves PRO vs. CON semantic separation |
-| `03_threeway_finetuning.ipynb` | v1 | Extend fine-tuning to PRO / CON / NEUTRAL using a sampled set of neutral examples |
-| `04_full_train_finetuning.ipynb` | v1 | Train the three-way approach on the full v1 training split |
-| `05_expanded_dataset_finetuning.ipynb` | v2 | Evaluate the same three-way approach after expanding and rebuilding the dataset |
+| Notebook | Method | Fine-Tuned | Accuracy | Macro F1 | Direction Accuracy |
+|---|---|---:|---:|---:|---:|
+| `01A_bge_baseline.ipynb` | Directional BGE baseline | No | 0.5410 | 0.4813 | 0.3030 |
+| `01B_bge_threeway_baseline.ipynb` | Three-way BGE baseline | No | 0.4262 | 0.4272 | 0.5152 |
+| `02A_BGE_Directional_Finetuning.ipynb` | Directional triplet fine-tuning | Yes | 0.5738 | 0.5619 | 0.6970 |
+| `02B_BGE_ThreeWay_Finetuning.ipynb` | Three-way triplet fine-tuning | Yes | 0.7049 | 0.6892 | 0.6970 |
 
-## Experimental Progression
+All four experiments are evaluated on the same 61-sentence validation set. The held-out TEST split is not used during model development.
 
-### 01 — BGE Baseline
+## 01A — BGE Directional Baseline
 
-Tests `BAAI/bge-base-en-v1.5` without fine-tuning.
+Evaluates the original `BAAI/bge-base-en-v1.5` model without fine-tuning.
 
-The baseline revealed that semantically similar but directionally opposite statements can occupy nearby regions of the original embedding space, motivating task-specific fine-tuning.
+Each sentence is compared with PRO and CON reference statements. The difference between PRO and CON similarity scores determines direction, while a validation-selected threshold identifies sentences as NEUTRAL.
 
-### 02 — Directional Fine-Tuning
+This experiment establishes the baseline for the directional formulation and illustrates the difficulty generic semantic embeddings have with role-reversed statements.
 
-Fine-tunes BGE using triplet loss on sentences annotated as either PRO or CON.
+## 01B — BGE Three-Way Baseline
 
-The objective is to pull a ballot sentence toward reference statements with the correct outcome direction and push it away from statements representing the opposite direction.
+Evaluates untouched BGE using explicit PRO, CON, and NEUTRAL semantic target banks.
 
-### 03 — Three-Way Fine-Tuning
+Each validation sentence is compared with all three target banks, and the class with the highest maximum cosine similarity is selected.
 
-Introduces NEUTRAL as a third semantic class.
+This provides the direct no-fine-tuning baseline for the three-way formulation used in Experiment 02B.
 
-Training uses PRO, CON, and a sampled subset of 60 NEUTRAL sentences to test whether the model can distinguish outcome leakage from ordinary feedback.
+## 02A — Directional Fine-Tuning
 
-### 04 — Full-Train Fine-Tuning
+Fine-tunes BGE using only training sentences already annotated as directional leakage (PRO or CON).
 
-Extends the three-way experiment to the complete v1 training split, including all available NEUTRAL examples.
+Each sentence is used as an anchor in triplets that pull its representation toward the correct directional target and push it away from the opposite target.
 
-### 05 — Expanded Dataset Fine-Tuning
+Inference retains the PRO-minus-CON similarity score and validation-selected neutral threshold used in the directional baseline.
 
-Repeats the three-way methodology using Dataset v2, which includes additional manually annotated directional examples and a rebuilt judge-separated split.
+## 02B — Three-Way Fine-Tuning
 
-Because Dataset v2 uses a different validation split, its metrics should not be directly compared with Dataset v1 as a controlled one-variable experiment.
+Extends triplet fine-tuning by representing NEUTRAL as an explicit third semantic class.
+
+Training uses all available PRO and CON training sentences together with 60 sampled NEUTRAL sentences. Each sentence is trained against both incorrect semantic classes.
+
+Inference directly selects the highest-scoring class across the PRO, CON, and NEUTRAL target banks without a neutral threshold.
+
+## Experimental Comparisons
+
+The experiments are designed around two direct comparisons:
+
+**01A → 02A:** measures the effect of directional triplet fine-tuning while retaining the directional inference formulation.
+
+**01B → 02B:** measures the effect of three-way triplet fine-tuning while retaining the explicit PRO / CON / NEUTRAL target-bank formulation.
+
+The second comparison provides the cleaner evaluation of whether task-specific fine-tuning improves the embedding space for three-way ballot leakage detection.
 
 ## Common Setup
 
-Unless otherwise stated, experiments use:
-
-- **Embedding model:** `BAAI/bge-base-en-v1.5`
+- **Base model:** `BAAI/bge-base-en-v1.5`
 - **Embedding dimension:** 768
 - **Model input:** Individual ballot sentence
+- **Similarity:** Cosine similarity
 - **Fine-tuning objective:** Triplet loss
 - **Evaluation classes:** PRO / CON / NEUTRAL
-- **Inference:** Maximum similarity to class-specific reference embeddings
-- **Test split:** Held out during development
+- **Validation set:** 61 sentences
+- **Directional validation examples:** 33
+- **Test set:** Held out during development
 
-Dataset splits used by each notebook are stored in:
-
-- `../data/splits_v1/`
-- `../data/splits_v2/`
-
-See `../data/README.md` for the annotation schema and dataset construction details.
+See `../data/README.md` for the dataset and annotation schema and `../results/` for consolidated evaluation results.
